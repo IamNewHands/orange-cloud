@@ -1,7 +1,7 @@
 name: Sync from upstream
 
 # 定期把上游 chen2he/orange-cloud 的 main 同步进本 fork 的 main，
-# 同时保留本仓库自有的改动（如 build-ios.yml）。冲突时自动中止，不会强推覆盖。
+# 同时保留本仓库自有的改动（如 build-ios.yml）。冲突时 action 会失败停止，不强推覆盖。
 on:
   schedule:
     # 每天 02:00 UTC（北京时间 10:00）；需要更频/更疏自行改 cron。
@@ -15,12 +15,19 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      # 该 action 需要在已检出的目标 git 仓库内运行，必须先 checkout 本 fork 的 main。
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Sync fork with upstream
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.3
         with:
-          upstream_repo: chen2he/orange-cloud   # 上游仓库
-          upstream_branch: main                 # 要拉取的上游分支
-          target_branch: main                   # 同步进本仓库的分支
-          merge_method: merge                   # 保留双方历史，merge 方式合并
-          abort_on_conflict: true               # 有冲突就停手，不自动解决
-          shallow_since: 1 day ago              # 只同步最近一天的提交，省资源
+          upstream_sync_repo: chen2he/orange-cloud   # 上游仓库
+          upstream_sync_branch: main                 # 要拉取的上游分支
+          target_sync_branch: main                   # 同步进本仓库的分支
+          shallow_since: 1 day ago                   # 只同步最近一天的提交，省资源
+          # 合并提交的作者署名（避免 git 因缺 author 报错）
+          git_config_user: 'GitHub Actions'
+          git_config_email: 'actions@users.noreply.github.com'
