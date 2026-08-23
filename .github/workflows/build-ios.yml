@@ -42,6 +42,8 @@ jobs:
     name: Build IPA
     runs-on: macos-26
     timeout-minutes: 60
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -181,7 +183,25 @@ jobs:
             ${{ runner.temp }}/OrangeCloud-unsigned.ipa
             build.log
 
+      # 把编译出的 IPA 作为一个 Draft Release 上传（Actions artifact 会过期，Draft 更长久）。
+      # 每次构建生成独立的 tag（nightly-<sha>），默认是一条草稿，可在页面手动点 "Publish release"。
+      - name: Create GitHub Release and upload IPA
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly-${{ github.sha }}
+          name: "Orange Cloud IPA (${{ github.sha }})"
+          body: |
+            本次构建的未签名/签名 IPA。
+            使用方式见 workflow 说明：unsigned 需要自行签名后安装。
+          # 两种模式都上传；unsigned 必存在，signed 可选
+          files: |
+            ${{ runner.temp }}/OrangeCloud-unsigned.ipa
+            ${{ runner.temp }}/export/*.ipa
+          fail_on_unmatched_files: false
+          draft: true
+
       - name: Show artifact location
         if: always()
         run: |
-          echo "完成。请在 Actions 页面下载名为 OrangeCloud-ipa-<sha> 的 Artifact。"
+          echo "完成。请在 Actions 页面下载名为 OrangeCloud-ipa-<sha> 的 Artifact，或到该次运行的 Release 草稿里取 IPA。"
