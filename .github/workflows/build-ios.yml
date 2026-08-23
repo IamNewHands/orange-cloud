@@ -183,23 +183,24 @@ jobs:
             ${{ runner.temp }}/OrangeCloud-unsigned.ipa
             build.log
 
-      # 把编译出的 IPA 作为一个 Draft Release 上传（Actions artifact 会过期，Draft 更长久）。
-      # 每次构建生成独立的 tag（nightly-<sha>），默认是一条草稿，可在页面手动点 "Publish release"。
+      # 把编译出的 IPA 发布为一个固定 tag（OPENSOURCE_UNLOCKED）的公开 Release。
+      # 复用同一 tag：每次构建会更新该 Release（同 tag 的 release 会被覆盖/补充 assets）。
       - name: Create GitHub Release and upload IPA
         if: always()
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly-${{ github.sha }}
-          name: "Orange Cloud IPA (${{ github.sha }})"
+          tag_name: OPENSOURCE_UNLOCKED
+          name: "Orange Cloud IPA (OPENSOURCE_UNLOCKED)"
           body: |
-            本次构建的未签名/签名 IPA。
-            使用方式见 workflow 说明：unsigned 需要自行签名后安装。
+            开源构建（OPENSOURCE_UNLOCKED 编译条件，全功能解锁）。
+            复用固定 tag `OPENSOURCE_UNLOCKED`，每次构建会更新该 Release 的 IPA。
+            unsigned 需自行签名后安装；signed 可选。
           # 两种模式都上传；unsigned 必存在，signed 可选
           files: |
             ${{ runner.temp }}/OrangeCloud-unsigned.ipa
             ${{ runner.temp }}/export/*.ipa
           fail_on_unmatched_files: false
-          draft: true
+          draft: false
 
       - name: Show artifact location
         if: always()
