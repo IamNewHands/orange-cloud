@@ -1,0 +1,187 @@
+# 手动触发的 iOS 构建工作流
+#
+# 说明：
+#   1. 在 GitHub Actions 的 macOS Runner 上编译 iOS 应用（无需本地 Mac）。
+#   2. 通过 SWIFT_ACTIVE_COMPILATION_CONDITIONS 注入 OPENSOURCE_UNLOCKED，
+#      按项目 LICENSE / README 约定解锁全部 Pro 功能（官方许可的开源自用构建）。
+#   3. 提供两种签名模式：
+#      - signed  : 使用 GitHub Secrets 中的 .p12 证书 + .mobileprovision 描述文件签名（适合付费开发者账号；免费个人团队受 Apple 限制，详见下文）
+#      - unsigned: 不签名编译，产出可拿到本机自行签名的 .app 打包的 .ipa（免费 Apple ID 最现实的路径）
+#
+# 触发方式：GitHub 仓库 → Actions → 该 workflow → Run workflow（填写参数）
+#
+# 使用前提（必读 README）：
+#   自编译构建需要自行创建 Cloudflare OAuth Client 并部署回调中转，
+#   且把 clientID / redirectURI 写入 apps/ios/.../Core/Auth/OAuthConfig.swift，
+#   否则编译出的 App 无法登录 Cloudflare。
+
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      signing_mode:
+        description: '签名模式 (signed=用证书签名 / unsigned=不签名)'
+        required: true
+        default: 'unsigned'
+        type: choice
+        options:
+          - unsigned
+          - signed
+      configuration:
+        description: '构建配置 (Release 推荐)'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+
+jobs:
+  build:
+    name: Build IPA
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 固定 Xcode 版本。项目要求 Xcode 26+（见 README）。
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26'
+
+      # 注入 OAuth 配置：把 GitHub Secrets 里的 Client ID / 回调地址写入 Info.plist。
+      # 公开仓库代码里只有占位符 __OAUTH_CLIENT_ID__ / __OAUTH_REDIRECT_URI__，
+      # 真实值只在 GitHub Actions Secrets 中，避免泄密。
+      - name: Inject OAuth config from Secrets
+        env:
+          CF_CLIENT_ID: ${{ secrets.CLOUDFLARE_CLIENT_ID }}
+          CF_REDIRECT_URI: ${{ secrets.CLOUDFLARE_REDIRECT_URI }}
+        run: |
+          PLIST="apps/ios/Orange Cloud/Orange Cloud/Info.plist"
+          if [ -z "$CF_CLIENT_ID" ] || [ -z "$CF_REDIRECT_URI" ]; then
+            echo "::error::请先在仓库 Settings → Secrets and variables → Actions 中配置 CLOUDFLARE_CLIENT_ID 和 CLOUDFLARE_REDIRECT_URI"
+            exit 1
+          fi
+          /usr/libexec/PlistBuddy -c "Set :OAuthClientID $CF_CLIENT_ID" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :OAuthRedirectURI $CF_REDIRECT_URI" "$PLIST"
+          echo "已注入 OAuth 配置（Client ID 已打码显示）："
+          /usr/libexec/PlistBuddy -c "Print :OAuthClientID" "$PLIST" | sed -E 's/^(..).*/\1****/'
+
+      # 仅 signed 模式需要导入签名材料
+      - name: Import signing certificate (signed)
+        if: inputs.signing_mode == 'signed'
+        env:
+          P12_BASE64: ${{ secrets.IOS_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_CERT_P12_PASSWORD }}
+        run: |
+          if [ -z "$P12_BASE64" ] || [ -z "$P12_PASSWORD" ]; then
+            echo "::error::signed 模式需要在仓库 Secrets 中配置 IOS_CERT_P12_BASE64 和 IOS_CERT_P12_PASSWORD"
+            exit 1
+          fi
+          echo "$P12_BASE64" | base64 --decode > cert.p12
+          # 创建一个空的 keychain 并导入证书，避免污染系统钥匙串
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import cert.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -k "" build.keychain
+          security list-keychains -d user -s build.keychain
+
+      # 导入描述文件（signed 模式）
+      - name: Install provisioning profile (signed)
+        if: inputs.signing_mode == 'signed'
+        env:
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          if [ -z "$PROFILE_BASE64" ]; then
+            echo "::error::signed 模式需要在仓库 Secrets 中配置 IOS_PROVISIONING_PROFILE_BASE64"
+            exit 1
+          fi
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      - name: Archive app (signed)
+        if: inputs.signing_mode == 'signed'
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+          PROFILE_NAME: ${{ secrets.IOS_PROFILE_NAME }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project "apps/ios/Orange Cloud/Orange Cloud.xcodeproj" \
+            -scheme "Orange Cloud" \
+            -configuration "${{ inputs.configuration }}" \
+            -archivePath "$RUNNER_TEMP/OrangeCloud.xcarchive" \
+            -destination "generic/platform=iOS" \
+            -allowProvisioningUpdates \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) OPENSOURCE_UNLOCKED" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            | tee -a build.log
+
+      # signed 模式导出 .ipa
+      - name: Export IPA (signed)
+        if: inputs.signing_mode == 'signed'
+        run: |
+          cat > exportOptions.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key><string>development</string>
+              <key>signingStyle</key><string>manual</string>
+              <key>stripSwiftSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/OrangeCloud.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist exportOptions.plist
+
+      # 无签名模式：直接编译，并用 ditto 打成 Payload 结构的 .ipa
+      - name: Archive app (unsigned)
+        if: inputs.signing_mode == 'unsigned'
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project "apps/ios/Orange Cloud/Orange Cloud.xcodeproj" \
+            -scheme "Orange Cloud" \
+            -configuration "${{ inputs.configuration }}" \
+            -archivePath "$RUNNER_TEMP/OrangeCloud.xcarchive" \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) OPENSOURCE_UNLOCKED" \
+            | tee -a build.log
+
+      # 无签名模式：从 archive 取出 .app 打包成 .ipa（Payload 结构，可本机再签名）
+      - name: Package unsigned IPA
+        if: inputs.signing_mode == 'unsigned'
+        run: |
+          APP_PATH="$RUNNER_TEMP/OrangeCloud.xcarchive/Products/Applications/Orange Cloud.app"
+          mkdir -p "$RUNNER_TEMP/payload/Payload"
+          ditto "$APP_PATH" "$RUNNER_TEMP/payload/Payload/Orange Cloud.app"
+          cd "$RUNNER_TEMP/payload"
+          zip -r "$RUNNER_TEMP/OrangeCloud-unsigned.ipa" Payload
+
+      # 收集产物并上传
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeCloud-ipa-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/export/*.ipa
+            ${{ runner.temp }}/OrangeCloud-unsigned.ipa
+            build.log
+
+      - name: Show artifact location
+        if: always()
+        run: |
+          echo "完成。请在 Actions 页面下载名为 OrangeCloud-ipa-<sha> 的 Artifact。"

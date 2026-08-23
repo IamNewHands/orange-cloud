@@ -9,19 +9,23 @@
 import Foundation
 
 nonisolated enum OAuthConfig {
-    /// 官方 OAuth Client（Cloudflare Dashboard → OAuth clients）。
-    /// 仅供官方构建使用；自编译请自建 Client 与回调中转，见 CONTRIBUTING.md。
-    static let clientID = "102240eb9095a1965ee11813ef4788cd"
+    // 从 Info.plist 读取真实值（见工程内 Info.plist 的 OAuthClientID / OAuthRedirectURI）。
+    // 源码与仓库里只保留占位符，CI 构建时用 GitHub Actions Secrets 经 plutil 注入真实值，
+    // 从而避免把个人 OAuth Client ID / 回调地址写入公开仓库。
+    // 注意：Client Secret 不需要填进 App——本工程用 PKCE，token 交换在 App 端完成。
 
-    /// 自定义 scheme，供 Web 后端 302 跳回 App
+    /// 你自己的 Cloudflare OAuth Client（Cloudflare Dashboard → My Profile → OAuth apps）
+    static var clientID: String {
+        Bundle.main.object(forInfoDictionaryKey: "OAuthClientID") as? String ?? ""
+    }
+
+    /// 自定义 scheme，供 Web 后端 302 跳回 App（对应 Info.plist 里注册的 CFBundleURLSchemes）
     static let callbackScheme = "orangecloud"
 
-    // Cloudflare OAuth 只接受 https redirect_uri，指向 Web 后端回调中转（见 apps/web/README.md）
-//    #if DEBUG
-//    static let redirectURI = "http://localhost:3000/oauth/callback"
-//    #else
-    static let redirectURI = "https://o-c.do/oauth/callback"
-//    #endif
+    /// 你自己部署的回调中转地址（https，Cloudflare OAuth 只接受 https redirect_uri）
+    static var redirectURI: String {
+        Bundle.main.object(forInfoDictionaryKey: "OAuthRedirectURI") as? String ?? ""
+    }
 
     // Cloudflare OAuth 端点
     static let authorizationURL = URL(string: "https://dash.cloudflare.com/oauth2/auth")!

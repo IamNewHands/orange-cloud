@@ -9,6 +9,10 @@
 	</array>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
+	<key>OAuthClientID</key>
+	<string>__OAUTH_CLIENT_ID__</string>
+	<key>OAuthRedirectURI</key>
+	<string>__OAUTH_REDIRECT_URI__</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
