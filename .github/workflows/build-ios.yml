@@ -187,7 +187,7 @@ jobs:
       # 复用同一 tag：每次构建会更新该 Release（同 tag 的 release 会被覆盖/补充 assets）。
       - name: Create GitHub Release and upload IPA
         if: always()
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: OPENSOURCE_UNLOCKED
           name: "Orange Cloud IPA (OPENSOURCE_UNLOCKED)"

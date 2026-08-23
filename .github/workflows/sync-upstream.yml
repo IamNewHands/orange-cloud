@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Sync fork with upstream
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.3
         with:
           upstream_repo: chen2he/orange-cloud   # 上游仓库
           upstream_branch: main                 # 要拉取的上游分支
