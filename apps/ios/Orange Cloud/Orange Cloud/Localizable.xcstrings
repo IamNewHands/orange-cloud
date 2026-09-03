@@ -166920,6 +166920,386 @@
           }
         }
       }
+    },
+    "当前线上脚本 %@，超出手机端就地编辑的上限，已转为只读。可以导入改好的 .js 文件整体替换。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حجم النص البرمجي الحالي %@ ويتجاوز حد التحرير على الجهاز، لذا فهو للقراءة فقط. يمكنك استيراد ملف .js معدَّل لاستبداله بالكامل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das aktive Skript ist %@ groß und überschreitet die Grenze für die Bearbeitung auf dem Gerät; es ist daher schreibgeschützt. Du kannst eine bearbeitete .js-Datei importieren, um es vollständig zu ersetzen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The live script is %@, which exceeds the limit for editing on device, so it is read-only. You can import an edited .js file to replace it entirely."
+          }
+        },
+        "es-MX": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El script en línea pesa %@ y supera el límite para editarlo en el dispositivo, así que es de solo lectura. Puedes importar un archivo .js modificado para reemplazarlo por completo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le script en ligne fait %@ et dépasse la limite d’édition sur l’appareil : il est donc en lecture seule. Vous pouvez importer un fichier .js modifié pour le remplacer entièrement."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のスクリプトは %@ で、端末上で直接編集できる上限を超えるため読み取り専用になっています。編集済みの .js ファイルを読み込んで全体を置き換えられます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 스크립트는 %@ 로 기기에서 직접 편집할 수 있는 한도를 초과하여 읽기 전용입니다. 수정한 .js 파일을 가져와 전체를 교체할 수 있습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O script em produção tem %@ e excede o limite para edição no dispositivo, por isso está somente leitura. Você pode importar um arquivo .js editado para substituí-lo por completo."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O script em produção tem %@ e excede o limite para edição no dispositivo, pelo que está apenas de leitura. Pode importar um ficheiro .js editado para o substituir por completo."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yayındaki betik %@ boyutunda ve cihaz üzerinde düzenleme sınırını aştığı için salt okunur. Düzenlediğiniz bir .js dosyasını içe aktararak tamamını değiştirebilirsiniz."
+          }
+        },
+        "zh-HK": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前線上腳本 %@，超出在手機上直接編輯的上限，已轉為唯讀。可以匯入改好的 .js 檔案整份取代。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前線上指令碼 %@，超出在手機上直接編輯的上限，已轉為唯讀。可以匯入改好的 .js 檔案整份取代。"
+          }
+        }
+      }
+    },
+    "当前线上脚本是压缩过的打包产物（%@，存在超长行），不适合在手机上就地编辑，已转为只读。可以导入改好的 .js 文件整体替换。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "النص البرمجي الحالي حزمة مصغَّرة (%@، وتحتوي على أسطر طويلة جدًا) لا تناسب التحرير على الجهاز، لذا فهو للقراءة فقط. يمكنك استيراد ملف .js معدَّل لاستبداله بالكامل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das aktive Skript ist ein minifiziertes Bundle (%@, mit sehr langen Zeilen) und eignet sich nicht zur Bearbeitung auf dem Gerät; es ist daher schreibgeschützt. Du kannst eine bearbeitete .js-Datei importieren, um es vollständig zu ersetzen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The live script is a minified bundle (%@, with very long lines), which is not suitable for editing on device, so it is read-only. You can import an edited .js file to replace it entirely."
+          }
+        },
+        "es-MX": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El script en línea es un paquete minificado (%@, con líneas muy largas) y no es apto para editarse en el dispositivo, así que es de solo lectura. Puedes importar un archivo .js modificado para reemplazarlo por completo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le script en ligne est un bundle minifié (%@, avec des lignes très longues), inadapté à l’édition sur l’appareil : il est donc en lecture seule. Vous pouvez importer un fichier .js modifié pour le remplacer entièrement."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のスクリプトは圧縮されたバンドル（%@、極端に長い行を含む）で、端末上での直接編集に向かないため読み取り専用になっています。編集済みの .js ファイルを読み込んで全体を置き換えられます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 스크립트는 압축된 번들(%@, 매우 긴 줄 포함)이라 기기에서 직접 편집하기에 적합하지 않아 읽기 전용입니다. 수정한 .js 파일을 가져와 전체를 교체할 수 있습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O script em produção é um pacote minificado (%@, com linhas muito longas) e não é adequado para edição no dispositivo, por isso está somente leitura. Você pode importar um arquivo .js editado para substituí-lo por completo."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O script em produção é um pacote minificado (%@, com linhas muito longas) e não é adequado para edição no dispositivo, pelo que está apenas de leitura. Pode importar um ficheiro .js editado para o substituir por completo."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yayındaki betik küçültülmüş bir paket (%@, çok uzun satırlar içeriyor) ve cihaz üzerinde düzenlemeye uygun olmadığı için salt okunur. Düzenlediğiniz bir .js dosyasını içe aktararak tamamını değiştirebilirsiniz."
+          }
+        },
+        "zh-HK": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前線上腳本是壓縮過的打包產物（%@，含超長行），不適合在手機上直接編輯，已轉為唯讀。可以匯入改好的 .js 檔案整份取代。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前線上指令碼是壓縮過的封裝產物（%@，含超長行），不適合在手機上直接編輯，已轉為唯讀。可以匯入改好的 .js 檔案整份取代。"
+          }
+        }
+      }
+    },
+    "待部署文件": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الملف المراد نشره"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu veröffentlichende Datei"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File to deploy"
+          }
+        },
+        "es-MX": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivo por implementar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fichier à déployer"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デプロイするファイル"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배포할 파일"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arquivo a implantar"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ficheiro a implementar"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dağıtılacak dosya"
+          }
+        },
+        "zh-HK": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待部署檔案"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待部署檔案"
+          }
+        }
+      }
+    },
+    "导入 .js 文件整体替换": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد ملف .js لاستبداله بالكامل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit .js-Datei ersetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import a .js file to replace it"
+          }
+        },
+        "es-MX": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar un archivo .js para reemplazar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer un fichier .js pour remplacer"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".js ファイルを読み込んで全体を置き換え"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".js 파일을 가져와 전체 교체"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar um arquivo .js para substituir"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar um ficheiro .js para substituir"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Değiştirmek için .js dosyası içe aktar"
+          }
+        },
+        "zh-HK": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯入 .js 檔案整份取代"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯入 .js 檔案整份取代"
+          }
+        }
+      }
+    },
+    "重新选择文件": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختيار ملف آخر"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Andere Datei wählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a different file"
+          }
+        },
+        "es-MX": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir otro archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir un autre fichier"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルを選び直す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 파일 선택"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher outro arquivo"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher outro ficheiro"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başka dosya seç"
+          }
+        },
+        "zh-HK": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新選擇檔案"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新選擇檔案"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
