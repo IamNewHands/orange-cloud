@@ -4,8 +4,9 @@ name: Sync from upstream
 # 同时保留本仓库自有的改动（如 build-ios.yml）。冲突时 action 会失败停止，不强推覆盖。
 on:
   schedule:
-    # 每天 02:00 UTC（北京时间 10:00）；需要更频/更疏自行改 cron。
-    - cron: '0 2 * * *'
+    # 每天两次：04:00 UTC（北京时间 12:00）和 16:00 UTC（北京时间 24:00）；实际触发常有延迟。
+    - cron: '0 4 * * *'
+    - cron: '0 16 * * *'
   workflow_dispatch:
 
 permissions:
