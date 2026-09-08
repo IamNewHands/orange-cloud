@@ -189,6 +189,17 @@ export const GUIDES: GuideMeta[] = [
 		updated: "2026-09-09",
 		readingTime: "8 min read",
 	},
+	{
+		slug: "cloudflare-hide-origin-ip",
+		h1: "Can Someone Still Find My Origin IP Behind Cloudflare?",
+		title: "Hide Your Origin IP Behind Cloudflare: What Works",
+		description:
+			"Proxying hides your origin address from DNS, but does not make it secret. Anyone who learns it can skip Cloudflare unless your origin refuses them.",
+		blurb:
+			"The orange cloud hides an address; it does not defend one. The five ways an origin IP gets out, and why only a rule at the origin itself actually closes the door.",
+		updated: "2026-09-09",
+		readingTime: "9 min read",
+	},
 ];
 
 export const GUIDES_ZH: GuideMeta[] = [
