@@ -200,6 +200,17 @@ export const GUIDES: GuideMeta[] = [
 		updated: "2026-09-09",
 		readingTime: "9 min read",
 	},
+	{
+		slug: "cloudflare-block-ai-crawlers",
+		h1: "How Do You Block AI Crawlers on Cloudflare?",
+		title: "Block AI Crawlers on Cloudflare: Defaults Change Sept 15",
+		description:
+			"robots.txt only states a preference. Enforcement comes from AI Crawl Control or the AI bot policies, and new-domain defaults change on September 15, 2026.",
+		blurb:
+			"Stating a preference, enforcing it, and wasting a crawler's time are three different tools. Which one actually stops a crawler, and what changes on September 15.",
+		updated: "2026-09-09",
+		readingTime: "9 min read",
+	},
 ];
 
 export const GUIDES_ZH: GuideMeta[] = [
