@@ -178,6 +178,17 @@ export const GUIDES: GuideMeta[] = [
 		updated: "2026-09-05",
 		readingTime: "8 min read",
 	},
+	{
+		slug: "cloudflare-error-1020-access-denied",
+		h1: "Why Am I Seeing Cloudflare Error 1020: Access Denied?",
+		title: "Cloudflare Error 1020: Access Denied, Explained",
+		description:
+			"Error 1020 means a security rule on that site blocked your request on purpose. It is a decision by the site owner, not an outage, and arrives as HTTP 403.",
+		blurb:
+			"Someone wrote a rule and you matched it. Which Cloudflare feature emits 1020 rather than 1015 or 1106, and the one log that names the rule that did it.",
+		updated: "2026-09-09",
+		readingTime: "8 min read",
+	},
 ];
 
 export const GUIDES_ZH: GuideMeta[] = [
