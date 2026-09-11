@@ -12,7 +12,7 @@ struct MainTabView: View {
 
     @Environment(SessionStore.self) private var session
     @Environment(AuthManager.self) private var auth
-    @State private var selectedTab: AppTab = .dashboard
+    @State private var selectedTab: AppTab = AppTab.initialTab
     private let router = AppRouter.shared
 
     var body: some View {
@@ -114,5 +114,24 @@ struct MainTabView: View {
 
     enum AppTab: Hashable {
         case dashboard, zones, developer, storage, settings
+
+        /// 启动落哪个 Tab。平时恒为概览；仅 DEBUG 下认启动参数
+        /// `-ORANGE_START_TAB zones|developer|storage|settings`，
+        /// 供模拟器自动化（宽幅布局巡检等）直接落到目标页——simctl 没有点按能力，
+        /// 靠它免去 GUI 自动化。Release 构建里这段不参与编译。
+        static var initialTab: AppTab {
+            #if DEBUG
+            switch ProcessInfo.processInfo.environment["ORANGE_START_TAB"]
+                ?? UserDefaults.standard.string(forKey: "ORANGE_START_TAB") {
+            case "zones":     return .zones
+            case "developer": return .developer
+            case "storage":   return .storage
+            case "settings":  return .settings
+            default:          return .dashboard
+            }
+            #else
+            return .dashboard
+            #endif
+        }
     }
 }
