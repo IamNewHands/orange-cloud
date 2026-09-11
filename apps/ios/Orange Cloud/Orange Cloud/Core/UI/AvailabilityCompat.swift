@@ -25,9 +25,12 @@ extension View {
     /// `popoverTip` 的安全封装：iOS 17.0.x 上跳过（见 ``ProcessInfo/isBuggyTipKitNavBar``），
     /// 避免导航栏锚定的 TipKit popover 崩溃；17.1+ 与更高版本行为不变，正常展示气泡提示。
     /// 适用于挂在工具栏 bar button 上的提示；非导航栏场景同样安全（17.0.x 仅少展示一次提示）。
+    ///
+    /// `enabled` 供调用方按画布再关一道：宽画布（regular）顶部有 Tab 胶囊，锚在工具栏按钮上的
+    /// popover 会横着盖住它，那种场合改用页内 `TipView`，见 DashboardView 的 accountSwitchTip。
     @ViewBuilder
-    func safePopoverTip<T: Tip>(_ tip: T) -> some View {
-        if ProcessInfo.isBuggyTipKitNavBar {
+    func safePopoverTip<T: Tip>(_ tip: T, enabled: Bool = true) -> some View {
+        if !enabled || ProcessInfo.isBuggyTipKitNavBar {
             self
         } else {
             popoverTip(tip)
