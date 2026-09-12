@@ -17,6 +17,9 @@ struct MainTabView: View {
 
     var body: some View {
         tabContainer
+            // 向下滚动收起 Tab 栏（iOS 26+）：Duo 外屏又宽又矮，Tab 栏又和工具栏挤在同一条竖轴上，
+            // 长列表滚动时把这块空间让给内容。
+            .ocTabBarMinimizeOnScroll()
             .task {
                 consumePendingRoute()
                 await session.ensureAccounts()

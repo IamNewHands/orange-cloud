@@ -192,9 +192,11 @@ private struct ZoneListContent: View {
             ToolbarItem(placement: .topBarTrailing) {
                 refreshButton
             }
+            .ocPriority(.secondary)
             ToolbarItem(placement: .topBarTrailing) {
                 addButton
             }
+            .ocPriority(.primary)
         }
         .navigationSplitViewColumnWidth(min: 300, ideal: 340)
     }
@@ -223,9 +225,11 @@ private struct ZoneListContent: View {
             ToolbarItem(placement: .topBarTrailing) {
                 refreshButton
             }
+            .ocPriority(.secondary)
             ToolbarItem(placement: .topBarTrailing) {
                 addButton
             }
+            .ocPriority(.primary)
         }
     }
 
