@@ -152,11 +152,15 @@ extension View {
     /// （用 ``ProcessInfo/usesSystemToolbarOverflow`` 判断该不该挂自建菜单，两边共用同一份菜单内容）。
     @ViewBuilder
     func ocOverflowActions<C: View>(@ViewBuilder content: @escaping () -> C) -> some View {
+        #if compiler(>=6.4)     // 见文件末尾「为什么按编译器版本分档」
         if #available(iOS 27.0, *) {
             toolbarOverflowMenu(content: content)
         } else {
             self
         }
+        #else
+        self
+        #endif
     }
 }
 
@@ -164,7 +168,11 @@ extension ProcessInfo {
     /// 当前系统是否自带工具栏溢出菜单（iOS 27+）。为 true 时别再挂自建的 ellipsis 菜单，
     /// 动作交给 ``SwiftUI/View/ocOverflowActions(content:)`` 并入系统菜单。
     nonisolated static var usesSystemToolbarOverflow: Bool {
+        #if compiler(>=6.4)
         if #available(iOS 27.0, *) { true } else { false }
+        #else
+        false   // 用 iOS 26 SDK 编的包里没有系统溢出菜单，调用方继续挂自建 ellipsis
+        #endif
     }
 }
 
@@ -177,6 +185,7 @@ enum OCToolbarPriority {
     /// 辅助动作（刷新、排序），优先溢出
     case secondary
 
+    #if compiler(>=6.4)
     @available(iOS 27.0, *)
     var resolved: ToolbarItemVisibilityPriority {
         switch self {
@@ -184,17 +193,22 @@ enum OCToolbarPriority {
         case .secondary: .low
         }
     }
+    #endif
 }
 
 extension ToolbarContent {
     /// ``OCToolbarPriority`` 的兼容封装：iOS 27+ 落到 `visibilityPriority`，以下版本原样返回。
     @ToolbarContentBuilder
     func ocPriority(_ priority: OCToolbarPriority) -> some ToolbarContent {
+        #if compiler(>=6.4)
         if #available(iOS 27.0, *) {
             visibilityPriority(priority.resolved)
         } else {
             self
         }
+        #else
+        self
+        #endif
     }
 }
 
@@ -212,3 +226,15 @@ private struct TabBarMinimizeOnScroll: ViewModifier {
         }
     }
 }
+
+// MARK: - 为什么按编译器版本分档
+// `visibilityPriority` / `ToolbarItemVisibilityPriority` / `toolbarOverflowMenu` 是 **iOS 27 SDK**
+// 才有的符号——`if #available` 只挡运行期，**挡不住编译期**：用 iOS 26 SDK 编译时这些名字根本不存在，
+// 直接报 "cannot find in scope"（Xcode Cloud 的 "Latest Release" 当时是 Xcode 26.6 / iPhoneOS 26.5 SDK，
+// build 51 就是这么挂的）。故再套一层 `#if compiler(>=6.4)`：Swift 6.4 随 Xcode 27 一起发布，
+// 等价于「手上这套工具链带 iOS 27 SDK」。
+//
+// 代价要知道：**用 Xcode 26.x 编出来的包里，这三件事会被编译掉**——工具栏溢出优先级、
+// 系统溢出菜单都不存在，自建 ellipsis 菜单会继续显示（`usesSystemToolbarOverflow` 返回 false 兜住了）。
+// 另外 iPhone Duo / 可调尺寸的自动 opt-in 同样只在用 iOS 27 SDK 归档时才生效。
+// 要完整效果，Xcode Cloud 的工作流得把 Xcode 版本选到 27（"Xcode 27 Release Candidate"）。
