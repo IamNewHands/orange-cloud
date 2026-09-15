@@ -25,9 +25,12 @@ extension View {
     /// `popoverTip` 的安全封装：iOS 17.0.x 上跳过（见 ``ProcessInfo/isBuggyTipKitNavBar``），
     /// 避免导航栏锚定的 TipKit popover 崩溃；17.1+ 与更高版本行为不变，正常展示气泡提示。
     /// 适用于挂在工具栏 bar button 上的提示；非导航栏场景同样安全（17.0.x 仅少展示一次提示）。
+    ///
+    /// `enabled` 供调用方按画布再关一道：宽画布（regular）顶部有 Tab 胶囊，锚在工具栏按钮上的
+    /// popover 会横着盖住它，那种场合改用页内 `TipView`，见 DashboardView 的 accountSwitchTip。
     @ViewBuilder
-    func safePopoverTip<T: Tip>(_ tip: T) -> some View {
-        if ProcessInfo.isBuggyTipKitNavBar {
+    func safePopoverTip<T: Tip>(_ tip: T, enabled: Bool = true) -> some View {
+        if !enabled || ProcessInfo.isBuggyTipKitNavBar {
             self
         } else {
             popoverTip(tip)
@@ -125,5 +128,87 @@ extension Color {
             blue:  Double(ab + (bb - ab) * t),
             opacity: Double(aa + (ba - aa) * t)
         )
+    }
+}
+
+// MARK: - iPhone Duo：竖轴工具栏与 Tab 栏
+// iPhone Duo 的外屏（以及内屏横屏）把状态栏 / 工具栏 / Tab 栏一起放到侧边竖轴，
+// 给内容留出竖向空间。用标准组件就自动拿到这套布局，我们要做的是三件事：
+// ① 给长列表页开「滚动时收起 Tab 栏」；② 让溢出顺序按动作重要性走，而不是默认的从下往上；
+// ③ 自建的「更多」菜单并进系统溢出菜单（HIG：ellipsis 只留给系统菜单）。
+// 参考 HIG「Designing for iPhone Duo」（2026-09-09）。
+
+extension View {
+    /// 向下滚动时最小化 Tab 栏（iOS 26+），把竖向空间让给内容；iOS 18 / 17 无操作。
+    /// Duo 外屏又宽又矮，Tab 栏还和工具栏挤在同一条竖轴上，滚动时收起收益最大。
+    /// **只在 compact 宽度开**：regular（iPad / Duo 内屏）的 Tab 胶囊在顶部、不占竖向内容区，
+    /// 收起反而让人找不着，故显式给 `.never`——用同一个修饰器只换参数，不按画布切换修饰器结构，
+    /// 免得 size class 翻转时 TabView 换 identity 被整个重建（见 MainTabView 里的 .id 禁令）。
+    func ocTabBarMinimizeOnScroll() -> some View {
+        modifier(TabBarMinimizeOnScroll())
+    }
+
+    /// 把一组动作并入**系统**溢出菜单（iOS 27+）；以下版本无操作，调用方需自备 ellipsis 菜单
+    /// （用 ``ProcessInfo/usesSystemToolbarOverflow`` 判断该不该挂自建菜单，两边共用同一份菜单内容）。
+    @ViewBuilder
+    func ocOverflowActions<C: View>(@ViewBuilder content: @escaping () -> C) -> some View {
+        if #available(iOS 27.0, *) {
+            toolbarOverflowMenu(content: content)
+        } else {
+            self
+        }
+    }
+}
+
+extension ProcessInfo {
+    /// 当前系统是否自带工具栏溢出菜单（iOS 27+）。为 true 时别再挂自建的 ellipsis 菜单，
+    /// 动作交给 ``SwiftUI/View/ocOverflowActions(content:)`` 并入系统菜单。
+    nonisolated static var usesSystemToolbarOverflow: Bool {
+        if #available(iOS 27.0, *) { true } else { false }
+    }
+}
+
+/// 工具栏项在竖轴上的保留优先级。空间不够时系统默认**从下往上**把项目收进溢出菜单，
+/// 于是「新建 / 添加」这类主动作反而先被收走；标成 high 让它留到最后，
+/// 刷新 / 排序这类随时能从菜单里找到的标成 low。iOS 27 以下无操作。
+enum OCToolbarPriority {
+    /// 页面主动作（新建、添加、编辑），最后才溢出
+    case primary
+    /// 辅助动作（刷新、排序），优先溢出
+    case secondary
+
+    @available(iOS 27.0, *)
+    var resolved: ToolbarItemVisibilityPriority {
+        switch self {
+        case .primary:   .high
+        case .secondary: .low
+        }
+    }
+}
+
+extension ToolbarContent {
+    /// ``OCToolbarPriority`` 的兼容封装：iOS 27+ 落到 `visibilityPriority`，以下版本原样返回。
+    @ToolbarContentBuilder
+    func ocPriority(_ priority: OCToolbarPriority) -> some ToolbarContent {
+        if #available(iOS 27.0, *) {
+            visibilityPriority(priority.resolved)
+        } else {
+            self
+        }
+    }
+}
+
+/// ocTabBarMinimizeOnScroll 的实现载体（要读 horizontalSizeClass 环境）
+private struct TabBarMinimizeOnScroll: ViewModifier {
+
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.tabBarMinimizeBehavior(sizeClass == .compact ? .onScrollDown : .never)
+        } else {
+            content
+        }
     }
 }
