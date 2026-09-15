@@ -20,10 +20,7 @@ nonisolated enum TestFlightSunset {
 
     static let appStoreURL = URL(string: "https://apps.apple.com/app/id6779323783")!
 
-    /// 领码来信的收件人。这里写死公司支持邮箱，**不复用 `DiagnosticsInfo.supportEmail`**：
-    /// 全局迁到 support@zhe.ltd 的那批改动还在分支 chore/company-entity-copyright-support 里没合，
-    /// main 上仍是旧地址。等那条合入后，这里可以改回引用 DiagnosticsInfo.supportEmail。
-    static let claimEmail = "support@zhe.ltd"
+    /// 领码来信的收件人 = 公司支持邮箱（与设置页「帮助与反馈」同一个地址）
 
 
     /// 当前包是否来自 TestFlight。App Store 包的 receipt 叫 `receipt`，

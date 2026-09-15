@@ -129,13 +129,13 @@ struct TestFlightSunsetView: View {
         let subject = String(localized: "TestFlight 优惠码申请")
         if MFMailComposeViewController.canSendMail() {
             mailData = MailData(
-                recipients: [TestFlightSunset.claimEmail],
+                recipients: [DiagnosticsInfo.supportEmail],
                 subject: subject,
                 body: body,
                 attachmentURL: nil
             )
         } else {
-            shareItems = ["\(TestFlightSunset.claimEmail)\n\(subject)\n\n\(body)"]
+            shareItems = ["\(DiagnosticsInfo.supportEmail)\n\(subject)\n\n\(body)"]
         }
     }
 
