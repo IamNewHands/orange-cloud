@@ -219,7 +219,7 @@ export const GUIDES: GuideMeta[] = [
 			"A 520\u2013527 code describes the hop from Cloudflare to your origin. A 1xxx code is Cloudflare\u2019s own decision, and is not an HTTP status code at all.",
 		blurb:
 			"The range tells you who has to fix it. Why a 1xxx number never reaches your monitoring, which four codes could come from either side, and how one Ray ID becomes one log line.",
-		updated: "2026-09-15",
+		updated: "2026-09-16",
 		readingTime: "8 min read",
 	},
 	{
