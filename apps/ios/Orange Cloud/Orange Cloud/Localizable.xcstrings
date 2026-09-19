@@ -28120,6 +28120,82 @@
         }
       }
     },
+    "代码加载失败，为避免覆盖线上代码，暂不能保存。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحميل الشيفرة. الحفظ معطّل حتى لا يُستبدل الـ Snippet المنشور."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Code konnte nicht geladen werden. Speichern ist deaktiviert, damit das Live-Snippet nicht überschrieben wird."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load the code. Saving is disabled so the live snippet isn't overwritten."
+          }
+        },
+        "es-MX": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo cargar el código. El guardado está desactivado para no sobrescribir el snippet en producción."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de charger le code. L’enregistrement est désactivé pour ne pas écraser le snippet en production."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コードを読み込めませんでした。本番のスニペットを上書きしないよう、保存はできません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "코드를 불러오지 못했습니다. 운영 중인 스니펫을 덮어쓰지 않도록 저장할 수 없습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o código. Salvar está desativado para não sobrescrever o snippet em produção."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o código. Guardar está desativado para não substituir o snippet em produção."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kod yüklenemedi. Canlı snippet'in üzerine yazılmaması için kaydetme devre dışı."
+          }
+        },
+        "zh-HK": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "程式碼載入失敗，為避免覆蓋線上程式碼，暫時無法儲存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "程式碼載入失敗，為避免覆蓋線上程式碼，暫時無法儲存。"
+          }
+        }
+      }
+    },
     "令牌等同于隧道凭据，请妥善保管，不要公开分享。": {
       "localizations": {
         "ar": {
