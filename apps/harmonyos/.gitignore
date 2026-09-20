@@ -18,6 +18,9 @@
 # 签名私钥与证书材料（p12 / csr / profile / DevEco material）——绝不入库
 /cert
 
+# 签名配置（含证书口令与本机绝对路径）——仓库公开，只提交 build-profile.example.json5
+/build-profile.json5
+
 # AGC 配置（含 client_secret、api_key 密文）
 /agconnect-services.json
 
