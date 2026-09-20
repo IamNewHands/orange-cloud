@@ -2,7 +2,7 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "Orange Cloud 主模块"
+      "value": "橙云主模块"
     },
     {
       "name": "EntryAbility_desc",
@@ -10,7 +10,7 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "Orange Cloud"
+      "value": "橙云"
     },
     {
       "name": "widget_display_name",
@@ -30,7 +30,7 @@
     },
     {
       "name": "FormAbility_desc",
-      "value": "Orange Cloud 服务卡片"
+      "value": "橙云服务卡片"
     }
   ]
 }
