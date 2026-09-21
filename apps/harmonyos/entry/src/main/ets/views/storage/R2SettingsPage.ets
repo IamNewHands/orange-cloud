@@ -697,6 +697,9 @@ export struct R2SettingsPage {
           }, (method: string) => method)
         }
       }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .align(Alignment.Start)
       .width('100%')
       TextInput({ text: this.fHeaders, placeholder: '允许请求头（逗号分隔，可留空）' })
         .fontSize(13)
@@ -747,6 +750,19 @@ export struct R2SettingsPage {
     HdsNavDestination() {
       Stack({ alignContent: Alignment.TopStart }) {
         OCSkyBackground()
+        // 半模态各挂独立的 0 尺寸宿主节点：同一个节点上链多个 bindSheet 只有最后一个生效（真机实测）
+        Stack() {}
+        .width(0)
+        .height(0)
+        .bindSheet(this.showSql, this.sqlSheet(), ocSheet(() => {
+          this.showSql = false;
+        }))
+        Stack() {}
+        .width(0)
+        .height(0)
+        .bindSheet(this.showAddDomain, this.addDomainSheet(), ocSheet(() => {
+          this.showAddDomain = false;
+        }))
         if (this.vm.isLoading) {
           Column() {
             OCLoading({ text: '正在加载桶设置…' })
@@ -1024,12 +1040,6 @@ export struct R2SettingsPage {
     }
     .titleBar({ style: { systemMaterialEffect: systemMaterial() }, content: { title: { mainTitle: `${this.bucket} · 桶设置` } } })
     .backgroundColor($r('sys.color.background_secondary'))
-    .bindSheet(this.showAddDomain, this.addDomainSheet(), ocSheet(() => {
-      this.showAddDomain = false;
-    }))
-    .bindSheet(this.showSql, this.sqlSheet(), ocSheet(() => {
-      this.showSql = false;
-    }))
     .bindSheet(this.showAddCors, this.addCorsSheet(), ocSheet(() => {
       this.showAddCors = false;
     }))

@@ -1431,6 +1431,11 @@ export struct DashboardView {
       .align(Alignment.Top)
       .onDidScroll((dx: number, dy: number) => { tabBarScroll.notifyScroll(dy); })
       .backgroundColor(Color.Transparent)
+      // 用量明细半模态挂在 Scroll 上、搜索面板挂在 Refresh 上：两个半模态分挂
+      // 不同宿主节点，避免同一节点上两个 bindSheet 相互影响
+      .bindSheet(this.usageSheetVisible, this.usageDetailSheet(), ocSheetCompact(() => {
+        this.usageSheetVisible = false;
+      }))
     }
     .onRefreshing(() => {
       // 加载逻辑保持在独立异步链路，手势回调只置状态，不同步 await
@@ -1444,10 +1449,6 @@ export struct DashboardView {
     .width('100%')
     .height('100%')
     .backgroundColor(Color.Transparent)
-    // 用量宫格点开的服务明细半模态（单档中高，锁定/降级卡不触发）
-    .bindSheet(this.usageSheetVisible, this.usageDetailSheet(), ocSheetCompact(() => {
-      this.usageSheetVisible = false;
-    }))
     // 命令搜索面板（大档半模态，结果列表要占满高度）
     .bindSheet(this.showSearch, this.searchSheet(), ocSheet(() => {
       this.showSearch = false;
