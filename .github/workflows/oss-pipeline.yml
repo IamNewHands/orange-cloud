@@ -3,7 +3,9 @@ name: OSS Pipeline (sync upstream -> build IPA -> release)
 # 这个文件干三件事，一条流水线跑完：
 #   1. 定时把上游 chen2he/orange-cloud 的 main 合并进本仓库 main（只 merge，绝不 reset / force）；
 #   2. 只有上游真的有新代码（或你手动勾了 force_build）时才继续；
-#   3. 在 macOS runner 上编译未签名 IPA，更新 Release（固定 tag OPENSOURCE_UNLOCKED）。
+#   3. 在 macOS runner 上编译未签名 IPA，然后发两个 release：
+#        - 固定 tag OPENSOURCE_UNLOCKED + 固定资产名 = 稳定下载链接，每次覆盖，tag 跟着指到当次构建的 commit；
+#        - 每个上游版本一条 oss-v<版本>-b<构建号>，永久留档、日期是当天，可回滚到旧版本。
 #
 # 为什么同步和编译放在同一个 workflow 里：
 #   用 GITHUB_TOKEN 推的提交不会再触发其它 workflow，拆成两个文件的话「同步完自动编译」串不起来。
@@ -228,31 +230,70 @@ jobs:
           APP_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")"
           SHA="$(cut -d' ' -f1 "$RUNNER_TEMP/ipa.sha256")"
           SIZE="$(stat -f%z "$RUNNER_TEMP/${IPA_NAME}")"
+          BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BUILT_SHA="$(git rev-parse HEAD)"
 
-          cat > "$RUNNER_TEMP/notes.md" <<EOF
-          Orange Cloud 开源自编译包（编译条件 OPENSOURCE_UNLOCKED，Pro 功能全解锁）。
+          VERSIONED_TAG="oss-v${VERSION}-b${APP_BUILD}"
+          VERSIONED_ASSET="OrangeCloud-${VERSION}-b${APP_BUILD}-unsigned.ipa"
+          cp "$RUNNER_TEMP/${IPA_NAME}" "$RUNNER_TEMP/${VERSIONED_ASSET}"
 
+          # 两个 release 的分工：
+          #   ${RELEASE_TAG}     固定 tag + 固定资产名 = 稳定下载链接，每次覆盖；tag 跟着指到当次构建的 commit
+          #   ${VERSIONED_TAG}   每个上游版本一条，永久保留，可回滚
+          publish_one() {
+            local tag="$1" asset="$2" title="$3" notes="$4"
+            if gh release view "$tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+              gh release upload "$tag" "$asset" --repo "${GITHUB_REPOSITORY}" --clobber
+              gh release edit "$tag" --repo "${GITHUB_REPOSITORY}" --title "$title" --notes-file "$notes"
+            else
+              gh release create "$tag" "$asset" --repo "${GITHUB_REPOSITORY}" --target "$BUILT_SHA" \
+                --title "$title" --notes-file "$notes"
+            fi
+          }
+
+          common_notes() {
+            cat <<EOF
           upstream-commit: ${UPSTREAM_SHA:-unknown}
           upstream-repo: ${UPSTREAM_REPO}@${UPSTREAM_BRANCH}
           version: ${VERSION} (build ${APP_BUILD})
-          ipa: ${IPA_NAME}  ${SIZE} bytes
           sha256: ${SHA}
-          built-at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          built-at: ${BUILT_AT}
           run: ${RUN_URL}
 
           未签名包，需要自行签名后安装（SideStore / LiveContainer / AltStore）。
-          下载地址（固定不变）：
+          EOF
+          }
+
+          # 1) 稳定链接（先发这个，手机上的固定地址一直可用）
+          {
+            common_notes
+            cat <<EOF
+          ipa: ${IPA_NAME}  ${SIZE} bytes
+          稳定下载地址（永远指向最新一次构建）：
+          https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${IPA_NAME}
+          本条目只是稳定别名，按上游版本留档的完整条目见 tag ${VERSIONED_TAG}。
+          EOF
+          } > "$RUNNER_TEMP/notes-stable.md"
+
+          # 稳定条目的 tag 指到当次构建的 commit，页面上的 commit / 「N commits since」才不是旧的
+          git push --force origin "HEAD:refs/tags/${RELEASE_TAG}"
+          publish_one "${RELEASE_TAG}" "$RUNNER_TEMP/${IPA_NAME}" \
+            "Orange Cloud OSS build v${VERSION} (build ${APP_BUILD})" "$RUNNER_TEMP/notes-stable.md"
+
+          # 2) 版本条目（永久留档，页面上的日期就是当天）
+          {
+            common_notes
+            cat <<EOF
+          ipa: ${VERSIONED_ASSET}  ${SIZE} bytes
+          本条按上游版本留档，可随时回滚到这一版。
+          只要最新一版就走稳定链接：
           https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${IPA_NAME}
           EOF
+          } > "$RUNNER_TEMP/notes-versioned.md"
 
-          gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1 \
-            || gh release create "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
-                 --title "Orange Cloud OSS build" --notes-file "$RUNNER_TEMP/notes.md"
-          gh release upload "${RELEASE_TAG}" "$RUNNER_TEMP/${IPA_NAME}" \
-            --repo "${GITHUB_REPOSITORY}" --clobber
-          gh release edit "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
-            --title "Orange Cloud OSS build v${VERSION} (build ${APP_BUILD})" \
-            --notes-file "$RUNNER_TEMP/notes.md"
+          publish_one "${VERSIONED_TAG}" "$RUNNER_TEMP/${VERSIONED_ASSET}" \
+            "Orange Cloud OSS v${VERSION} (build ${APP_BUILD})" "$RUNNER_TEMP/notes-versioned.md"
 
           echo "已发布：v${VERSION} (build ${APP_BUILD})，sha256 ${SHA}"
+          echo "  稳定条目 ${RELEASE_TAG} / 版本条目 ${VERSIONED_TAG}"
