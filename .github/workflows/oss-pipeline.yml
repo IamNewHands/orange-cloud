@@ -1,0 +1,258 @@
+name: OSS Pipeline (sync upstream -> build IPA -> release)
+
+# 这个文件干三件事，一条流水线跑完：
+#   1. 定时把上游 chen2he/orange-cloud 的 main 合并进本仓库 main（只 merge，绝不 reset / force）；
+#   2. 只有上游真的有新代码（或你手动勾了 force_build）时才继续；
+#   3. 在 macOS runner 上编译未签名 IPA，更新 Release（固定 tag OPENSOURCE_UNLOCKED）。
+#
+# 为什么同步和编译放在同一个 workflow 里：
+#   用 GITHUB_TOKEN 推的提交不会再触发其它 workflow，拆成两个文件的话「同步完自动编译」串不起来。
+#
+# ⚠️ 本仓库 main 上常驻这个文件。同步永远走 merge，所以它不会被上游覆盖；
+#    但如果你在 GitHub 网页上点 "Sync fork -> Discard commits"，你的提交（含本文件）会被整体删掉，
+#    流水线就彻底停了。要同步就让它自己跑，或者用 "Sync fork -> Update branch"（能快进时才安全）。
+#
+# 手动重建一次：Actions -> OSS Pipeline -> Run workflow -> force_build 勾上。
+
+on:
+  schedule:
+    # 每天两次：04:00 UTC（北京 12:00）、16:00 UTC（北京 24:00）。GitHub 的 cron 常有几十分钟延迟。
+    - cron: '0 4 * * *'
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: '上游没有更新也强制编译一次'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oss-pipeline
+  cancel-in-progress: false
+
+env:
+  TARGET_BRANCH: main
+  UPSTREAM_REPO: chen2he/orange-cloud
+  UPSTREAM_BRANCH: main
+  RELEASE_TAG: OPENSOURCE_UNLOCKED
+  IPA_NAME: OrangeCloud-unsigned.ipa
+  XCODE_PROJECT: apps/ios/Orange Cloud/Orange Cloud.xcodeproj
+  XCODE_SCHEME: Orange Cloud
+  OAUTH_CONFIG: apps/ios/Orange Cloud/Orange Cloud/Core/Auth/OAuthConfig.swift
+
+jobs:
+  sync:
+    name: Sync upstream
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      need_build: ${{ steps.plan.outputs.need_build }}
+      upstream_sha: ${{ steps.plan.outputs.upstream_sha }}
+      merged: ${{ steps.plan.outputs.merged }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge upstream (never force)
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force_build }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream "https://github.com/${UPSTREAM_REPO}.git"
+          git fetch --no-tags upstream "${UPSTREAM_BRANCH}"
+          UPSTREAM_SHA="$(git rev-parse "upstream/${UPSTREAM_BRANCH}")"
+          echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+
+          # 上一次成功发布到 Release 的上游 commit（写在 release 说明里）；没有就是空。
+          # 它和当前上游不一致 -> 说明还没编过这个版本（比如上次编译失败了），需要重编。
+          RECORDED="$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json body -q .body 2>/dev/null \
+            | sed -n 's/^upstream-commit: *//p' | head -1 || true)"
+
+          MERGED=false
+          if git merge-base --is-ancestor "upstream/${UPSTREAM_BRANCH}" HEAD; then
+            echo "上游没有新提交（upstream ${UPSTREAM_SHA:0:8} 已经在 main 里）"
+          else
+            if ! git merge --no-edit "upstream/${UPSTREAM_BRANCH}"; then
+              git merge --abort || true
+              echo "::error::上游与本仓库冲突，已中止合并，没有推送任何东西。请本地解决冲突后重跑。"
+              exit 1
+            fi
+            git push origin "HEAD:${TARGET_BRANCH}"
+            MERGED=true
+            echo "已把上游合并进 main：$(git rev-parse --short HEAD)"
+            echo "本次带入的非 workflow 改动："
+            git diff --name-only "upstream/${UPSTREAM_BRANCH}" HEAD -- . ':!.github' | head -30 || true
+          fi
+
+          NEED_BUILD=false
+          if [ "${MERGED}" = "true" ] || [ "${FORCE:-false}" = "true" ] || [ "${RECORDED}" != "${UPSTREAM_SHA}" ]; then
+            NEED_BUILD=true
+          fi
+          echo "merged=${MERGED}" >> "$GITHUB_OUTPUT"
+          echo "need_build=${NEED_BUILD}" >> "$GITHUB_OUTPUT"
+          echo "release 记录的上游 commit: ${RECORDED:-（无）} / 当前上游: ${UPSTREAM_SHA}"
+          echo "本次是否需要编译: ${NEED_BUILD}"
+
+  build:
+    name: Build unsigned IPA
+    needs: sync
+    # sync 失败时如果手动勾了 force_build，仍然编译当前 main（冲突时的逃生通道）
+    if: ${{ always() && (needs.sync.outputs.need_build == 'true' || inputs.force_build) }}
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          # 必须显式写 main：schedule 触发时 GITHUB_SHA 是同步之前的旧提交
+          ref: main
+          fetch-depth: 1
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 'latest-stable'
+
+      - name: Toolchain info
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcode-select -p
+          git log --oneline -1
+
+      - name: Inject OAuth config into OAuthConfig.swift
+        env:
+          CF_CLIENT_ID: ${{ secrets.CLOUDFLARE_CLIENT_ID }}
+          CF_REDIRECT_URI: ${{ secrets.CLOUDFLARE_REDIRECT_URI }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, re, sys
+
+          path = pathlib.Path(os.environ["OAUTH_CONFIG"])
+          if not path.exists():
+              sys.exit(f"::error::找不到 {path}，上游可能挪了 OAuth 配置文件")
+
+          src = path.read_text(encoding="utf-8")
+
+          def patch(text, key, value):
+              # 只改没有注释掉的那一行（文件里 DEBUG 用的 redirectURI 是注释行）
+              pattern = re.compile(r'(?m)^(?!\s*//)(\s*static let %s = ")[^"]*(")' % key)
+              new, n = pattern.subn(lambda m: m.group(1) + value + m.group(2), text)
+              if n != 1:
+                  sys.exit(f"::error::{key} 匹配到 {n} 处（应为 1 处），上游改了 OAuthConfig.swift，请人工核对")
+              return new
+
+          cid = os.environ.get("CF_CLIENT_ID", "").strip()
+          red = os.environ.get("CF_REDIRECT_URI", "").strip()
+
+          if cid:
+              src = patch(src, "clientID", cid)
+              print(f"clientID 已替换为 secrets 里的值（{cid[:4]}****）")
+          else:
+              print("::warning::没有配置 CLOUDFLARE_CLIENT_ID，沿用仓库内置的官方 clientID，编出来的包可能登录不了")
+
+          if red:
+              src = patch(src, "redirectURI", red)
+              print("redirectURI 已替换为 secrets 里的值")
+          else:
+              print("::warning::没有配置 CLOUDFLARE_REDIRECT_URI，沿用仓库内置的官方回调中转")
+
+          path.write_text(src, encoding="utf-8")
+          PY
+
+      - name: Archive (unsigned, OPENSOURCE_UNLOCKED)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project "${XCODE_PROJECT}" \
+            -scheme "${XCODE_SCHEME}" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/OrangeCloud.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" \
+            2>&1 | tee build.log
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/OrangeCloud.xcarchive/Products/Applications/Orange Cloud.app"
+          if [ ! -d "$APP" ]; then
+            echo "::error::archive 里没有找到 Orange Cloud.app"
+            find "$RUNNER_TEMP/OrangeCloud.xcarchive/Products" -maxdepth 3 | head -40
+            exit 1
+          fi
+          test -f "$APP/Orange Cloud" || { echo "::error::app 主二进制缺失"; exit 1; }
+          echo "版本: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist") (build $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist"))"
+          echo "签名状态（应为 not signed）:"; codesign -dv "$APP" 2>&1 | head -3 || true
+
+          mkdir -p "$RUNNER_TEMP/payload/Payload"
+          ditto "$APP" "$RUNNER_TEMP/payload/Payload/Orange Cloud.app"
+          ( cd "$RUNNER_TEMP/payload" && zip -qry "$RUNNER_TEMP/${IPA_NAME}" Payload )
+
+          shasum -a 256 "$RUNNER_TEMP/${IPA_NAME}" | tee "$RUNNER_TEMP/ipa.sha256"
+          ls -l "$RUNNER_TEMP/${IPA_NAME}"
+          unzip -l "$RUNNER_TEMP/${IPA_NAME}" | head -15
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeCloud-ipa-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/OrangeCloud-unsigned.ipa
+            ${{ runner.temp }}/ipa.sha256
+            build.log
+
+      - name: Publish to Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_SHA: ${{ needs.sync.outputs.upstream_sha }}
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/OrangeCloud.xcarchive/Products/Applications/Orange Cloud.app"
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")"
+          APP_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")"
+          SHA="$(cut -d' ' -f1 "$RUNNER_TEMP/ipa.sha256")"
+          SIZE="$(stat -f%z "$RUNNER_TEMP/${IPA_NAME}")"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          cat > "$RUNNER_TEMP/notes.md" <<EOF
+          Orange Cloud 开源自编译包（编译条件 OPENSOURCE_UNLOCKED，Pro 功能全解锁）。
+
+          upstream-commit: ${UPSTREAM_SHA:-unknown}
+          upstream-repo: ${UPSTREAM_REPO}@${UPSTREAM_BRANCH}
+          version: ${VERSION} (build ${APP_BUILD})
+          ipa: ${IPA_NAME}  ${SIZE} bytes
+          sha256: ${SHA}
+          built-at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          run: ${RUN_URL}
+
+          未签名包，需要自行签名后安装（SideStore / LiveContainer / AltStore）。
+          下载地址（固定不变）：
+          https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${IPA_NAME}
+          EOF
+
+          gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1 \
+            || gh release create "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+                 --title "Orange Cloud OSS build" --notes-file "$RUNNER_TEMP/notes.md"
+          gh release upload "${RELEASE_TAG}" "$RUNNER_TEMP/${IPA_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" --clobber
+          gh release edit "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --title "Orange Cloud OSS build v${VERSION} (build ${APP_BUILD})" \
+            --notes-file "$RUNNER_TEMP/notes.md"
+
+          echo "已发布：v${VERSION} (build ${APP_BUILD})，sha256 ${SHA}"
