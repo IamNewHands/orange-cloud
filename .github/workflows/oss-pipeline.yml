@@ -123,13 +123,17 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: 'latest-stable'
+          # 钉 26.5：26.6 的 Swift 在 ZoneDetailView 的巨型 body 上必然报
+          # "unable to type-check this expression in reasonable time"，
+          # 且把 solver 的 memory / scope / trail 上限都放到极大值也无效。
+          xcode-version: '26.5'
 
       - name: Toolchain info
         run: |
           set -euo pipefail
           xcodebuild -version
           xcode-select -p
+          swift --version
           git log --oneline -1
 
       - name: Inject OAuth config into OAuthConfig.swift
