@@ -9,7 +9,7 @@ name: OSS Pipeline (sync upstream -> build IPA -> release)
 #
 # 触发方式：
 #   - schedule：每天两次
-#   - push 到 main：任何提交（包括同步 merge 之外的手动改动）都出包
+#   - push 到 main：任何提交都出包，但只动 **.md / .github/** 的提交除外
 #   - workflow_dispatch：手动跑，可勾 force_build
 #   push 不会自我循环：同步用的 GITHUB_TOKEN 推的提交不会再触发 workflow。
 #
@@ -25,6 +25,11 @@ name: OSS Pipeline (sync upstream -> build IPA -> release)
 on:
   push:
     branches: [main]
+    # 只改文档 / CI 自己的提交不出包（这条 workflow 的改动也算在内）。
+    # 只要同一次推送里动到了别的文件，就照常出包。
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
   schedule:
     # 每天两次：04:00 UTC（北京 12:00）、16:00 UTC（北京 24:00）。GitHub 的 cron 常有几十分钟延迟。
     - cron: '0 4 * * *'
