@@ -173,13 +173,11 @@ jobs:
           path.write_text(src, encoding="utf-8")
           PY
 
-      # 上游代码在本仓库 runner 上编不过时的最小修补。补丁只作用于工作区，
-      # 不改源码树，所以不会和上游的自动 merge 打架。脚本自带幂等与「上游已修复」跳过。
-      - name: Apply OSS build patches (fork-only)
-        run: |
-          set -euo pipefail
-          python3 .github/oss-patches/ios-type-check.py
-
+      # 上游代码在本仓库 runner 上编不过时的唯一修补：放宽 Swift 类型检查超时。
+      # 默认阈值下，ZoneDetailView 的 body 表达式会报
+      #   error: the compiler is unable to type-check this expression in reasonable time
+      # 上游自己的机器能编过（说明表达式只是慢，不是无解），所以只放宽时限，
+      # 不动上游源码 —— 源码树保持与上游一致，自动 merge 才不会被冲突打断。
       - name: Archive (unsigned, OPENSOURCE_UNLOCKED)
         run: |
           set -o pipefail
@@ -193,6 +191,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY= \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" \
+            OTHER_SWIFT_FLAGS="-Xfrontend -solver-expression-time-threshold=600" \
             2>&1 | tee build.log
 
       - name: Package unsigned IPA
