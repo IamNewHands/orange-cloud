@@ -193,7 +193,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY= \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" \
-            OTHER_SWIFT_FLAGS="-Xfrontend -solver-memory-threshold=2000000000 -Xfrontend -solver-scope-threshold=0 -Xfrontend -solver-trail-threshold=0 -Xfrontend -warn-long-expression-type-checking=2000" \
+            OTHER_SWIFT_FLAGS="-Xfrontend -solver-memory-threshold=3500000000 -Xfrontend -solver-scope-threshold=0 -Xfrontend -solver-trail-threshold=0 -Xfrontend -warn-long-expression-type-checking=5000 -Xfrontend -warn-long-expression-type-checking-scopes=200000" \
             2>&1 | tee build.log
 
       - name: Package unsigned IPA
