@@ -111,16 +111,18 @@ def apply_text(src: str, old: str, new: str, already: str, label: str, log: list
     return src.replace(old, new, 1)
 
 
-def extract_block(lines: list, start_text: str, prop: str, note: str, log: list) -> bool:
-    """把一段 16 缩进的 ViewBuilder 语句提成 @ViewBuilder 计算属性。"""
-    if f"private var {prop}: some View" in "".join(lines):
+def extract_block(lines: list, start_text: str, prop: str, note: str, log: list,
+                  indent: int = INDENT, decorator: str = "@ViewBuilder",
+                  type_: str = "some View") -> bool:
+    """把一段 ViewBuilder / ToolbarContent 语句提成独立计算属性。"""
+    if f"private var {prop}: " in "".join(lines):
         log.append(f"跳过（已打过）：提取 {prop}")
         return False
 
     start = None
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if stripped == start_text and len(line) - len(line.lstrip()) == INDENT:
+        if stripped == start_text and len(line) - len(line.lstrip()) == indent:
             start = i
             break
     if start is None:
@@ -130,7 +132,7 @@ def extract_block(lines: list, start_text: str, prop: str, note: str, log: list)
     end = None
     for j in range(start + 1, len(lines)):
         s = lines[j]
-        if s.strip() == "}" and len(s) - len(s.lstrip()) == INDENT:
+        if s.strip() == "}" and len(s) - len(s.lstrip()) == indent:
             end = j
             break
     if end is None:
@@ -148,14 +150,14 @@ def extract_block(lines: list, start_text: str, prop: str, note: str, log: list)
         else:
             dedented.append(line)
 
-    lines[start:end + 1] = [" " * INDENT + prop + "\n"]
+    lines[start:end + 1] = [" " * indent + prop + "\n"]
 
     prop_lines = [
         "\n",
-        f"    /// OSS 构建补丁：把{note}整块从 body 提出来，让它单独成为一次类型检查\n",
+        f"    /// OSS 构建补丁：把{note}整块提出来，让它单独成为一次类型检查\n",
         "    /// （编译器提示的 breaking up the expression into distinct sub-expressions）。\n",
-        "    @ViewBuilder\n",
-        f"    private var {prop}: some View {{\n",
+        f"    {decorator}\n",
+        f"    private var {prop}: {type_} {{\n",
         *dedented,
         "    }\n",
     ]
@@ -185,6 +187,19 @@ def main() -> int:
             log.append("::error::找不到 MARK 锚点，跳过提取")
             break
         extract_block(lines, start_text, prop, note, log)
+
+    # toolbar 里的 ToolbarItem 单独实测 6.2s，也提成 ToolbarContent。
+    if MARK in lines:
+        extract_block(
+            lines,
+            "ToolbarItem(placement: .topBarTrailing) {",
+            "pinToolbarItem",
+            "toolbar 里的置顶按钮（实测 6.2s）",
+            log,
+            indent=12,
+            decorator="@ToolbarContentBuilder",
+            type_="some ToolbarContent",
+        )
     src = "".join(lines)
 
     TARGET.write_text(src, encoding="utf-8")
