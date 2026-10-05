@@ -1,11 +1,17 @@
 name: OSS Pipeline (sync upstream -> build IPA -> release)
 
 # 这个文件干三件事，一条流水线跑完：
-#   1. 定时把上游 chen2he/orange-cloud 的 main 合并进本仓库 main（只 merge，绝不 reset / force）；
-#   2. 只有上游真的有新代码（或你手动勾了 force_build）时才继续；
+#   1. 定时（或每次 push）把上游 chen2he/orange-cloud 的 main 合并进本仓库 main（只 merge，绝不 reset / force）；
+#   2. 上游有新代码、你手动勾了 force_build、或者这次是 push 触发的，就继续编译；
 #   3. 在 macOS runner 上编译未签名 IPA，然后发两个 release：
 #        - 固定 tag OPENSOURCE_UNLOCKED + 固定资产名 = 稳定下载链接，每次覆盖，tag 跟着指到当次构建的 commit；
 #        - 每个上游版本一条 oss-v<版本>-b<构建号>，永久留档、日期是当天，可回滚到旧版本。
+#
+# 触发方式：
+#   - schedule：每天两次
+#   - push 到 main：任何提交（包括同步 merge 之外的手动改动）都出包
+#   - workflow_dispatch：手动跑，可勾 force_build
+#   push 不会自我循环：同步用的 GITHUB_TOKEN 推的提交不会再触发 workflow。
 #
 # 为什么同步和编译放在同一个 workflow 里：
 #   用 GITHUB_TOKEN 推的提交不会再触发其它 workflow，拆成两个文件的话「同步完自动编译」串不起来。
@@ -17,6 +23,8 @@ name: OSS Pipeline (sync upstream -> build IPA -> release)
 # 手动重建一次：Actions -> OSS Pipeline -> Run workflow -> force_build 勾上。
 
 on:
+  push:
+    branches: [main]
   schedule:
     # 每天两次：04:00 UTC（北京 12:00）、16:00 UTC（北京 24:00）。GitHub 的 cron 常有几十分钟延迟。
     - cron: '0 4 * * *'
@@ -97,11 +105,15 @@ jobs:
           fi
 
           NEED_BUILD=false
-          if [ "${MERGED}" = "true" ] || [ "${FORCE:-false}" = "true" ] || [ "${RECORDED}" != "${UPSTREAM_SHA}" ]; then
+          # push 到 main 一律出包：自己改的东西（含本 workflow）不靠上游 commit 判定。
+          # GITHUB_TOKEN 推的同步提交不会触发 workflow，所以这里不会自我循环。
+          if [ "${MERGED}" = "true" ] || [ "${FORCE:-false}" = "true" ] \
+             || [ "${RECORDED}" != "${UPSTREAM_SHA}" ] || [ "${GITHUB_EVENT_NAME}" = "push" ]; then
             NEED_BUILD=true
           fi
           echo "merged=${MERGED}" >> "$GITHUB_OUTPUT"
           echo "need_build=${NEED_BUILD}" >> "$GITHUB_OUTPUT"
+          echo "触发事件: ${GITHUB_EVENT_NAME}"
           echo "release 记录的上游 commit: ${RECORDED:-（无）} / 当前上游: ${UPSTREAM_SHA}"
           echo "本次是否需要编译: ${NEED_BUILD}"
 
