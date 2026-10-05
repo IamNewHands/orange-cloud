@@ -173,6 +173,13 @@ jobs:
           path.write_text(src, encoding="utf-8")
           PY
 
+      # 上游代码在本仓库 runner 上编不过时的最小修补。补丁只作用于工作区，
+      # 不改源码树，所以不会和上游的自动 merge 打架。脚本自带幂等与「上游已修复」跳过。
+      - name: Apply OSS build patches (fork-only)
+        run: |
+          set -euo pipefail
+          python3 .github/oss-patches/ios-type-check.py
+
       - name: Archive (unsigned, OPENSOURCE_UNLOCKED)
         run: |
           set -o pipefail
