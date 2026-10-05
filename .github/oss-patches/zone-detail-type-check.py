@@ -99,6 +99,35 @@ BLOCKS = [
 
 INDENT = 16
 
+# body 主链的切分：三段各自成为一个独立表达式。
+CHAIN_EDITS = [
+    (
+        "    var body: some View {\n        ScrollView {\n",
+        "    private var bodyStage1: some View {\n        ScrollView {\n",
+        "private var bodyStage1: some View",
+        "body -> bodyStage1（内容 + 背景/标题）",
+    ),
+    (
+        "        .navigationBarTitleDisplayMode(.inline)\n        .toolbar {\n",
+        "        .navigationBarTitleDisplayMode(.inline)\n"
+        "    }\n\n"
+        "    private var bodyStage2: some View {\n"
+        "        bodyStage1\n"
+        "        .toolbar {\n",
+        "private var bodyStage2: some View",
+        "bodyStage2（toolbar + 反馈 + task + 下拉刷新）",
+    ),
+    (
+        '        .confirmationDialog(\n            pendingAction?.title ?? "",\n',
+        "    }\n\n"
+        "    var body: some View {\n"
+        "        bodyStage2\n"
+        '        .confirmationDialog(\n            pendingAction?.title ?? "",\n',
+        "var body: some View {\n        bodyStage2",
+        "body（只剩确认框与 alert）",
+    ),
+]
+
 
 def apply_text(src: str, old: str, new: str, already: str, label: str, log: list) -> str:
     if already in src:
@@ -201,6 +230,11 @@ def main() -> int:
             type_="some ToolbarContent",
         )
     src = "".join(lines)
+
+    # 最后一步：body 本身仍是一条 600 行的表达式链（ScrollView + 全部 modifier +
+    # 全部弹窗）。拆成三段各自独立的计算属性，每段单独做一次类型检查。
+    for old, new, already, label in CHAIN_EDITS:
+        src = apply_text(src, old, new, already, label, log)
 
     TARGET.write_text(src, encoding="utf-8")
     for line in log:
