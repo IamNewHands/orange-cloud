@@ -173,11 +173,13 @@ jobs:
           path.write_text(src, encoding="utf-8")
           PY
 
-      # 上游代码在本仓库 runner 上编不过时的唯一修补：放宽 Swift 类型检查超时。
-      # 默认阈值下，ZoneDetailView 的 body 表达式会报
+      # 上游代码在本仓库 runner 上编不过时的唯一修补：放宽 Swift 约束求解器的上限。
+      # 默认上限下，ZoneDetailView 的 body 表达式会报
       #   error: the compiler is unable to type-check this expression in reasonable time
-      # 上游自己的机器能编过（说明表达式只是慢，不是无解），所以只放宽时限，
-      # 不动上游源码 —— 源码树保持与上游一致，自动 merge 才不会被冲突打断。
+      # 该错误由 solver 的四个上限之一触发（内存 516MB / scope 1M / trail 64M / 时间默认关闭），
+      # 见 swift 的 ConstraintSystem::isTooComplex。上游自己的机器能编过，说明表达式只是
+      # 吃满默认额度、不是无解，所以只放宽额度，不动上游源码 —— 源码树保持与上游一致，
+      # 自动 merge 才不会被本仓库的改动打断。
       - name: Archive (unsigned, OPENSOURCE_UNLOCKED)
         run: |
           set -o pipefail
@@ -191,7 +193,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY= \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" \
-            OTHER_SWIFT_FLAGS="-Xfrontend -solver-expression-time-threshold=600" \
+            OTHER_SWIFT_FLAGS="-Xfrontend -solver-memory-threshold=2000000000 -Xfrontend -solver-scope-threshold=0 -Xfrontend -solver-trail-threshold=0 -Xfrontend -warn-long-expression-type-checking=2000" \
             2>&1 | tee build.log
 
       - name: Package unsigned IPA
