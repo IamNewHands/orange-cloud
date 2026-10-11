@@ -34,6 +34,10 @@ BUNDLE = pathlib.Path(
 
 MARK = "struct OCStaticProbeWidget: Widget {"
 
+# WidgetDaybreak.swift 原本只 import SwiftUI，探针代码要用 WidgetKit / AppIntents 的类型
+IMPORT_OLD = "import SwiftUI\n"
+IMPORT_NEW = "import SwiftUI\nimport WidgetKit\nimport AppIntents\n"
+
 PROBE = r'''
 
 // MARK: - 临时诊断组件（OSS 调试补丁 .github/oss-patches/widget-intent-probe.py）
@@ -153,6 +157,12 @@ def main() -> int:
     if MARK in src:
         print("已打过诊断组件补丁，跳过")
         return 0
+
+    if "import WidgetKit" not in src:
+        if IMPORT_OLD not in src:
+            print("::warning::WidgetDaybreak.swift 里找不到 import SwiftUI，无法补 import", file=sys.stderr)
+            return 0
+        src = src.replace(IMPORT_OLD, IMPORT_NEW, 1)
 
     src = src.rstrip("\n") + "\n" + PROBE
     TARGET.write_text(src, encoding="utf-8")
