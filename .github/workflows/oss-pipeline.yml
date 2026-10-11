@@ -199,8 +199,6 @@ jobs:
           set -euo pipefail
           python3 .github/oss-patches/zone-detail-type-check.py
           python3 .github/oss-patches/widget-app-group.py
-          python3 .github/oss-patches/widget-app-group-debug.py
-          python3 .github/oss-patches/widget-intent-probe.py
           python3 .github/oss-patches/widget-static-zone.py
           python3 .github/oss-patches/widget-bundle-id.py
 

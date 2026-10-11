@@ -69,9 +69,9 @@ struct OCStaticZoneWidget: Widget {
 }
 '''
 
-BUNDLE_OLD = """        OCIntentProbeWidget()
+BUNDLE_OLD = """        ZoneStatusWidget()
 """
-BUNDLE_NEW = """        OCIntentProbeWidget()
+BUNDLE_NEW = """        ZoneStatusWidget()
         OCStaticZoneWidget()
 """
 
