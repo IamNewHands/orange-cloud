@@ -200,6 +200,7 @@ jobs:
           python3 .github/oss-patches/zone-detail-type-check.py
           python3 .github/oss-patches/widget-app-group.py
           python3 .github/oss-patches/widget-app-group-debug.py
+          python3 .github/oss-patches/widget-intent-probe.py
 
       - name: Archive (unsigned, OPENSOURCE_UNLOCKED)
         run: |
