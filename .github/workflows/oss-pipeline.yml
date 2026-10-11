@@ -201,6 +201,7 @@ jobs:
           python3 .github/oss-patches/widget-app-group.py
           python3 .github/oss-patches/widget-updated-at.py
           python3 .github/oss-patches/widget-usage-updated-at.py
+          python3 .github/oss-patches/widget-extension-appgroup.py
           python3 .github/oss-patches/widget-bundle-id.py
 
       - name: Archive (unsigned, OPENSOURCE_UNLOCKED)
