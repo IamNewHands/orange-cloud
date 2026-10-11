@@ -201,16 +201,12 @@ jobs:
           python3 .github/oss-patches/widget-app-group.py
           python3 .github/oss-patches/widget-app-group-debug.py
           python3 .github/oss-patches/widget-intent-probe.py
+          python3 .github/oss-patches/widget-static-zone.py
+          python3 .github/oss-patches/widget-bundle-id.py
 
       - name: Archive (unsigned, OPENSOURCE_UNLOCKED)
         run: |
           set -o pipefail
-          # PRODUCT_MODULE_NAME 统一两个 target 的 Swift 模块名：
-          # 主 App 与 Widget 扩展共用同一份 Shared/WidgetConfigIntents.swift，各自编一份
-          # 就会产生两个不同的类型身份（Orange_Cloud.X 与 OrangeCloudWidgetsExtension.X）。
-          # 配置 intent 由主 App 侧解析、再交给扩展进程反序列化，身份不一致时扩展收不下配置
-          # → AppIntentConfiguration 组件永远停在占位态（StaticConfiguration 不受影响）。
-          # 命令行设置对项目里所有 target 生效，两边拿到同一个模块名即可对齐身份。
           xcodebuild archive \
             -project "${XCODE_PROJECT}" \
             -scheme "${XCODE_SCHEME}" \
@@ -220,7 +216,6 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY= \
-            PRODUCT_MODULE_NAME=OCWidgetShared \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" \
             OTHER_SWIFT_FLAGS="-Xfrontend -warn-long-expression-type-checking=1500" \
             2>&1 | tee build.log
