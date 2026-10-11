@@ -309,10 +309,28 @@ jobs:
           EOF
           } > "$RUNNER_TEMP/notes-stable.md"
 
-          # 稳定条目的 tag 指到当次构建的 commit，页面上的 commit / 「N commits since」才不是旧的
-          git push --force origin "HEAD:refs/tags/${RELEASE_TAG}"
+          # 先发稳定条目的资产，再动 tag —— 反过来一旦 tag 推不动就整段失败、产物发不出去
+          # （2026-10-11 run 38113717356 就是这么丢的：tag 推送被 workflow 权限拒了，
+          #   release 资产没发出去）。
           publish_one "${RELEASE_TAG}" "$RUNNER_TEMP/${IPA_NAME}" \
             "Orange Cloud OSS build v${VERSION} (build ${APP_BUILD})" "$RUNNER_TEMP/notes-stable.md"
+
+          # 稳定条目的 tag 指到当次构建的 commit，页面上的 commit / 「N commits since」才不是旧的。
+          # 用 API 而不是 git push：GITHUB_TOKEN 不允许推送「改动 .github/workflows/** 的提交」
+          # （remote rejected ... without `workflows` permission），而本仓库每个提交都可能改
+          # workflow 文件；Git Data API 移动 ref 不走这条推送校验。
+          move_tag() {
+            if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
+                 -X PATCH -f sha="${BUILT_SHA}" -F force=true >/dev/null 2>&1; then
+              echo "稳定 tag ${RELEASE_TAG} -> ${BUILT_SHA}"
+            elif gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+                 -f ref="refs/tags/${RELEASE_TAG}" -f sha="${BUILT_SHA}" >/dev/null 2>&1; then
+              echo "稳定 tag ${RELEASE_TAG} 已创建 -> ${BUILT_SHA}"
+            else
+              echo "::warning::稳定 tag 没推动（不影响产物发布，只影响页面上的 commit 显示）"
+            fi
+          }
+          move_tag
 
           # 2) 版本条目（永久留档，页面上的日期就是当天）
           {
