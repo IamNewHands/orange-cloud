@@ -198,6 +198,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/oss-patches/zone-detail-type-check.py
+          python3 .github/oss-patches/widget-app-group.py
 
       - name: Archive (unsigned, OPENSOURCE_UNLOCKED)
         run: |
